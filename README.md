@@ -6,7 +6,9 @@ This attempts to merge [Scott Wlaschin's talk](https://fsharpforfunandprofit.com
 
 **TODOS:**
 
-* let rec bindings working with partial application
-* better error messages
+* get objects working
+* valid json parsing (must be wrapped in '{}'; check numbers)
+* handle spaces
+* error messages
 * lazy input
 * pretty printer
