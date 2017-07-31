@@ -5,7 +5,8 @@ let run parser input =
   let (Parser parse) = parser in
   parse input
 
-let zero = Parser (fun input -> Failure "")
+let zero         = Parser (fun input -> Failure "")
+let failwith err = Parser (fun _ -> Failure err)
 
 let return x = Parser (fun input -> Success (x, input))
 
@@ -71,7 +72,7 @@ let satisfy pred =
     if (pred x) then
       return x
     else
-      zero
+      failwith (Printf.sprintf "Unexpected %c" x)
 
 let char c = satisfy (fun x -> x = c)
 
@@ -95,4 +96,11 @@ let word w =
     if x = w then
       return x
     else
-      zero
+      failwith (Printf.sprintf "Unexpected %s" x)
+
+let space = satisfy (fun c ->
+  c = ' ' || c = '\t' || c = '\n' || c = '\011' || c = '\012' || c = '\r')
+
+let spaces = many space
+
+let trim = between spaces spaces

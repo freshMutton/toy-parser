@@ -1,14 +1,12 @@
 open Combinators
 
-module Obj = Map.Make(String)
-
 type json =
   | String  of string
   | Number  of float
   | Boolean of bool
   | Null
   | Array   of json list
-  | Object  of json Obj.t
+  | Object  of (json * json) list
 
 let escapedChar =
   char '\\' >>
@@ -22,12 +20,11 @@ let escapedChar =
          ; char 't'  >> return '\t'
          ]
 
-let unescapedChar = satisfy (fun c -> c != '\\' || c != '\"')
+let unescapedChar = satisfy (fun c -> c != '\\' && c != '\"')
 
 let quoted_string =
   let quote  = char '"' in
-  let quoted = between quote quote in
-  quoted (many (unescapedChar <|> escapedChar)) |>> fun cs ->
+  between quote quote ((many unescapedChar) <|> (many escapedChar)) |>> fun cs ->
   implode cs
 
 let negative_sign = option (char '-') |>> string_of_option_char
@@ -69,7 +66,7 @@ let json_number =
   optional_exponent            |>> fun e ->
   Number (float_of_string (s ^ i ^ d ^ f ^ e))
 
-let rec parse_json =
+let rec json_value =
   Parser (fun input ->
     let json_parser = choice [ json_null
                              ; json_bool
@@ -82,10 +79,10 @@ let rec parse_json =
     run json_parser input)
 and json_array =
   Parser (fun input ->
-    let l              = char '[' in
-    let r              = char ']' in
-    let sep            = char ',' in
-    let separated_json = separated parse_json sep in
+    let l              = trim (char '[') in
+    let r              = trim (char ']') in
+    let sep            = trim (char ',') in
+    let separated_json = separated json_value sep in
     let array_parser   =
       between l r separated_json |>> fun x ->
       Array x
@@ -93,22 +90,19 @@ and json_array =
     run array_parser input)
 and json_object =
   Parser (fun input ->
-    let l              = char '{' in
-    let r              = char '}' in
-    let colon          = char ':' in
-    let sep            = char ',' in
-    let obj_of_list    =
-      List.fold_left (fun acc (k, v) -> Obj.add k v acc) Obj.empty
-    in
+    let l              = trim (char '{') in
+    let r              = trim (char '}') in
+    let colon          = trim (char ':') in
+    let sep            = trim (char ',') in
     let pair           =
-      quoted_string >>= fun k ->
-      colon         >>
-      parse_json    >>= fun v ->
+      json_string >>= fun k ->
+      colon       >>
+      json_value >>= fun v ->
       return (k, v)
     in
     let separated_pair = separated pair sep in
     let object_parser  =
       between l r separated_pair |>> fun x ->
-      Object (obj_of_list x)
+      Object x
     in
     run object_parser input)

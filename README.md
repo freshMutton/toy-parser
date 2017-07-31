@@ -6,9 +6,6 @@ This attempts to merge [Scott Wlaschin's talk](https://fsharpforfunandprofit.com
 
 **TODOS:**
 
-* get objects working
-* valid json parsing (must be wrapped in '{}'; check numbers)
-* handle spaces
 * error messages
 * lazy input
 * pretty printer
