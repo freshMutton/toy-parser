@@ -49,11 +49,21 @@ let optional_exponent =
     | None   -> ""
     | Some x -> x
 
+let fraction =
+  char '.'   |>> String.make 1 >>= fun d ->
+  many digit |>> implode       >>= fun f ->
+  return (d ^ f)
+
+let optional_fraction =
+  option fraction |>> function
+    | None   -> ""
+    | Some x -> x
+
 let json_null = word "null" >> return Null
 
 let json_bool =
-  let parse_true  = word "true"   >> return (Boolean true) in
-  let parse_false = word "false"  >> return (Boolean false) in
+  let parse_true  = word "true"  >> return (Boolean true) in
+  let parse_false = word "false" >> return (Boolean false) in
   parse_true <|> parse_false
 
 let json_string = quoted_string |>> fun x -> String x
@@ -61,10 +71,9 @@ let json_string = quoted_string |>> fun x -> String x
 let json_number =
   negative_sign                >>= fun s ->
   zero_int <|> non_zero_int    >>= fun i ->
-  char '.'   |>> String.make 1 >>= fun d ->
-  many digit |>> implode       >>= fun f ->
+  optional_fraction            >>= fun f ->
   optional_exponent            |>> fun e ->
-  Number (float_of_string (s ^ i ^ d ^ f ^ e))
+  Number (float_of_string (s ^ i ^ f ^ e))
 
 let rec json_value =
   Parser (fun input ->
@@ -97,7 +106,7 @@ and json_object =
     let pair           =
       json_string >>= fun k ->
       colon       >>
-      json_value >>= fun v ->
+      json_value  >>= fun v ->
       return (k, v)
     in
     let separated_pair = separated pair sep in
